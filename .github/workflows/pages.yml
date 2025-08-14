@@ -1,4 +1,6 @@
-name: Deploy Vite to GitHub Pages
+mkdir -p .github/workflows
+cat > .github/workflows/pages.yml <<'YAML'
+name: Deploy to GitHub Pages
 
 on:
   push:
@@ -13,42 +15,27 @@ concurrency:
   group: "pages"
   cancel-in-progress: true
 
-# Todas las tareas se ejecutan dentro de la carpeta 'malla'
-defaults:
-  run:
-    working-directory: malla
-
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: malla   # <- TU APP está en la carpeta "malla"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Node info
-        run: node -v || true
-
-      - name: Setup Node
+      - name: Use Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: malla/package-lock.json
 
-      - name: Show workspace
-        run: |
-          pwd
-          ls -la
-          ls -la ..
-
-      # Si npm ci falla por peer deps/lockfile, cae a npm install
-      - name: Install deps
-        run: npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+      - name: Install
+        run: npm ci
 
       - name: Build
-        env:
-          # Vite/TS no necesitan CI=true; lo dejamos vacío para evitar rarezas
-          CI: ""
         run: npm run build
 
       - name: Upload artifact
@@ -63,8 +50,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
+      - id: deployment
         uses: actions/deploy-pages@v4
-
+YAML
 
